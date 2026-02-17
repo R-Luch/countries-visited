@@ -281,12 +281,10 @@ async function ensureMapSvg(){
     if (!iso) return;
 
     // Find matching country name from our mapping
-    let matchName = null;
-    for (const [name, code] of Object.entries(COUNTRY_TO_ISO2)) {
-      if (code === iso) { matchName = name; break; }
-    }
-    const count = matchName ? getEntry(matchName).count : 0;
-    alert(`${matchName || iso.toUpperCase()}: ${count}`);
+    const counts = iso2CountMap();
+    const count = counts[iso] || 0;
+    alert(`${iso.toUpperCase()}: ${count}`);
+
   });
 }
 
