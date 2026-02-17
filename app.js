@@ -143,10 +143,33 @@ const sortByEl = document.getElementById("sortBy");
 const continentFilterEl = document.getElementById("continentFilter");
 const undoBtn = document.getElementById("undoBtn");
 const toggleNotesEl = document.getElementById("toggleNotes");
+const toggleCompactEl = document.getElementById("toggleCompact");
 
 let data = {}; // country -> {count, notes, updatedAt}
 let query = "";
 let undoStack = []; // { country, prev, next }
+
+let collapsed = {}; // continent -> boolean
+
+function loadPrefs() {
+  try {
+    collapsed = JSON.parse(localStorage.getItem("collapsedContinents") || "{}") || {};
+  } catch { collapsed = {}; }
+
+  const compact = localStorage.getItem("compactMode") === "1";
+  toggleCompactEl.checked = compact;
+  document.body.classList.toggle("compact", compact);
+
+  // notes toggle (if you already added it earlier)
+  const showNotes = localStorage.getItem("showNotes") === "1";
+  const toggleNotesEl = document.getElementById("toggleNotes");
+  if (toggleNotesEl) toggleNotesEl.checked = showNotes;
+  document.body.classList.toggle("notesHidden", !showNotes);
+}
+
+function saveCollapsed() {
+  localStorage.setItem("collapsedContinents", JSON.stringify(collapsed));
+}
 
 function now(){ return Date.now(); }
 function norm(s){ return s.toLowerCase().replace(/’/g,"'"); }
