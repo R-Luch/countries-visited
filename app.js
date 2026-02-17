@@ -253,6 +253,17 @@ function buildGroups(){
 }
 
 /* ------------------ Map ------------------ */
+function iso2CountMap() {
+  const out = {};
+  for (const country of COUNTRIES) {
+    const iso2 = COUNTRY_TO_ISO2[country];
+    if (!iso2) continue;
+    const c = getEntry(country).count;
+    if (c > 0) out[iso2] = c;
+  }
+  return out;
+}
+
 async function ensureMapSvg(){
   if (mapSvgLoaded || !mapHostEl) return;
   const res = await fetch("world-map.min.svg", { cache: "no-store" });
