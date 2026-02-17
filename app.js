@@ -483,6 +483,18 @@ resetBtn.addEventListener("click", async () => {
   render();
 });
 
+toggleCompactEl.addEventListener("change", () => {
+  const on = toggleCompactEl.checked;
+  document.body.classList.toggle("compact", on);
+  localStorage.setItem("compactMode", on ? "1" : "0");
+});
+
+toggleNotesEl.addEventListener("change", () => {
+  const on = toggleNotesEl.checked;
+  document.body.classList.toggle("notesHidden", !on);
+  localStorage.setItem("showNotes", on ? "1" : "0");
+});
+
 // ---- init ----
 (function initFilters(){
   // fill continent dropdown
@@ -497,6 +509,7 @@ resetBtn.addEventListener("click", async () => {
 (async function init(){
   data = await dbGetAll();
   updateUndoBtn();
+  loadPrefs();
   render();
   // Hide notes by default
   document.body.classList.add("notesHidden");
