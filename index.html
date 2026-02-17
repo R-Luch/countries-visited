@@ -10,23 +10,55 @@
 </head>
 <body>
   <header class="header">
-    <h1>Countries Visited</h1>
-    <div class="actions">
-      <button id="exportBtn" class="btn">Export</button>
-      <label class="btn fileLabel">
-        Import
-        <input id="importFile" type="file" accept="application/json" />
-      </label>
-      <button id="resetBtn" class="btn danger">Reset</button>
+    <div class="topRow">
+      <h1>Countries Visited</h1>
+      <button id="undoBtn" class="btn" disabled>Undo</button>
     </div>
-    <input id="search" class="search" placeholder="Search countries…" />
+
+    <div id="stats" class="stats">Loading…</div>
+
+    <div class="controls">
+      <input id="search" class="search" placeholder="Search countries…" />
+
+      <div class="row">
+        <label class="chip">
+          <input id="visitedOnly" type="checkbox" />
+          <span>Visited only</span>
+        </label>
+
+        <label class="chip">
+          <span>Sort</span>
+          <select id="sortBy">
+            <option value="alpha">A → Z</option>
+            <option value="most">Most visited</option>
+            <option value="recent">Recently updated</option>
+          </select>
+        </label>
+
+        <label class="chip">
+          <span>Continent</span>
+          <select id="continentFilter">
+            <option value="All">All</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="exportBtn" class="btn">Export</button>
+        <label class="btn fileLabel">
+          Import
+          <input id="importFile" type="file" accept="application/json" />
+        </label>
+        <button id="resetBtn" class="btn danger">Reset</button>
+      </div>
+    </div>
   </header>
 
   <main>
     <div class="hint">
-      Tap to add a visit. Use − to subtract. Offline by default.
+      Tap <b>+</b> / <b>−</b> to change counts. Tap the number to type a value. Notes are optional.
     </div>
-    <ul id="list" class="list"></ul>
+    <div id="list" class="groupList"></div>
   </main>
 
   <script src="app.js"></script>
