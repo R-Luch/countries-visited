@@ -204,3 +204,41 @@ main { padding: 10px 12px 40px; max-width: 980px; margin: 0 auto; }
 .notesHidden .notesRow {
   display: none;
 }
+/* Compact mode */
+.compact .item {
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.compact .list {
+  padding: 8px;
+  gap: 8px;
+}
+
+.compact .groupHeader {
+  padding: 8px 10px;
+}
+
+.compact .hint {
+  display: none;
+}
+
+.compact .groupHeader .meta {
+  display: none; /* hides the “x/y visited • trips” line */
+}
+
+/* Collapsible continents */
+.groupHeader {
+  cursor: pointer;
+  user-select: none;
+}
+
+.groupHeader .chev {
+  margin-left: 10px;
+  opacity: .7;
+  font-size: 14px;
+}
+
+.group.collapsed .list {
+  display: none;
+}
