@@ -462,4 +462,6 @@ resetBtn.addEventListener("click", async () => {
   data = await dbGetAll();
   updateUndoBtn();
   render();
+  // Hide notes by default
+  document.body.classList.add("notesHidden");
 })();
