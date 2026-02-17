@@ -142,6 +142,7 @@ const visitedOnlyEl = document.getElementById("visitedOnly");
 const sortByEl = document.getElementById("sortBy");
 const continentFilterEl = document.getElementById("continentFilter");
 const undoBtn = document.getElementById("undoBtn");
+const toggleNotesEl = document.getElementById("toggleNotes");
 
 let data = {}; // country -> {count, notes, updatedAt}
 let query = "";
