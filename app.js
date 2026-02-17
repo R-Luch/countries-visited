@@ -290,10 +290,17 @@ function render(){
 
     header.appendChild(h2);
     header.appendChild(meta);
+    header.appendChild(chev);
 
     const chev = document.createElement("span");
     chev.className = "chev";
     chev.textContent = collapsed[cont] ? "▸" : "▾";
+
+    header.addEventListener("click", () => {
+    collapsed[cont] = !collapsed[cont];
+    saveCollapsed();
+    render();
+  });
 
     const ul = document.createElement("ul");
     ul.className = "list";
