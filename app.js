@@ -1,8 +1,9 @@
-// Countries Visited v3 (offline, IndexedDB)
+// Countries Visited v3.1 (offline, IndexedDB)
 // Includes: continents, filters, sorting, stats, undo, manual edit, notes toggle,
 // compact toggle, collapsible continents, export/import (v1+v2), and SVG map view
-// using mapping.csv + world-map.min.svg (simple-world-map).
+// using world-map.min.svg (ISO2 lowercase path ids).
 
+/* ------------------ Country List (display names) ------------------ */
 const COUNTRIES = [
   "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
   "Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia",
@@ -26,7 +27,41 @@ const COUNTRIES = [
   "Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"
 ];
 
-// --- Continents mapping ---
+/* ------------------ ISO2 mapping (matches SVG ids) ------------------ */
+/* Note: This map uses ISO 3166-1 alpha-2 codes in LOWERCASE */
+const COUNTRY_TO_ISO2 = {
+  "Afghanistan":"af","Albania":"al","Algeria":"dz","Andorra":"ad","Angola":"ao","Antigua and Barbuda":"ag","Argentina":"ar",
+  "Armenia":"am","Australia":"au","Austria":"at","Azerbaijan":"az","Bahamas":"bs","Bahrain":"bh","Bangladesh":"bd",
+  "Barbados":"bb","Belarus":"by","Belgium":"be","Belize":"bz","Benin":"bj","Bhutan":"bt","Bolivia":"bo",
+  "Bosnia and Herzegovina":"ba","Botswana":"bw","Brazil":"br","Brunei":"bn","Bulgaria":"bg","Burkina Faso":"bf",
+  "Burundi":"bi","Cabo Verde":"cv","Cambodia":"kh","Cameroon":"cm","Canada":"ca","Central African Republic":"cf","Chad":"td",
+  "Chile":"cl","China":"cn","Colombia":"co","Comoros":"km","Congo (Congo-Brazzaville)":"cg","Costa Rica":"cr",
+  "Côte d’Ivoire":"ci","Croatia":"hr","Cuba":"cu","Cyprus":"cy","Czechia":"cz","Democratic Republic of the Congo":"cd",
+  "Denmark":"dk","Djibouti":"dj","Dominica":"dm","Dominican Republic":"do","Ecuador":"ec","Egypt":"eg","El Salvador":"sv",
+  "Equatorial Guinea":"gq","Eritrea":"er","Estonia":"ee","Eswatini":"sz","Ethiopia":"et","Fiji":"fj","Finland":"fi",
+  "France":"fr","Gabon":"ga","Gambia":"gm","Georgia":"ge","Germany":"de","Ghana":"gh","Greece":"gr","Grenada":"gd",
+  "Guatemala":"gt","Guinea":"gn","Guinea-Bissau":"gw","Guyana":"gy","Haiti":"ht","Honduras":"hn","Hungary":"hu",
+  "Iceland":"is","India":"in","Indonesia":"id","Iran":"ir","Iraq":"iq","Ireland":"ie","Israel":"il","Italy":"it",
+  "Jamaica":"jm","Japan":"jp","Jordan":"jo","Kazakhstan":"kz","Kenya":"ke","Kiribati":"ki","Kuwait":"kw","Kyrgyzstan":"kg",
+  "Laos":"la","Latvia":"lv","Lebanon":"lb","Lesotho":"ls","Liberia":"lr","Libya":"ly","Liechtenstein":"li","Lithuania":"lt",
+  "Luxembourg":"lu","Madagascar":"mg","Malawi":"mw","Malaysia":"my","Maldives":"mv","Mali":"ml","Malta":"mt",
+  "Marshall Islands":"mh","Mauritania":"mr","Mauritius":"mu","Mexico":"mx","Micronesia":"fm","Moldova":"md","Monaco":"mc",
+  "Mongolia":"mn","Montenegro":"me","Morocco":"ma","Mozambique":"mz","Myanmar (Burma)":"mm","Namibia":"na","Nauru":"nr",
+  "Nepal":"np","Netherlands":"nl","New Zealand":"nz","Nicaragua":"ni","Niger":"ne","Nigeria":"ng","North Korea":"kp",
+  "North Macedonia":"mk","Norway":"no","Oman":"om","Pakistan":"pk","Palau":"pw","Palestine State":"ps","Panama":"pa",
+  "Papua New Guinea":"pg","Paraguay":"py","Peru":"pe","Philippines":"ph","Poland":"pl","Portugal":"pt","Qatar":"qa",
+  "Romania":"ro","Russia":"ru","Rwanda":"rw","Saint Kitts and Nevis":"kn","Saint Lucia":"lc",
+  "Saint Vincent and the Grenadines":"vc","Samoa":"ws","San Marino":"sm","Sao Tome and Principe":"st",
+  "Saudi Arabia":"sa","Senegal":"sn","Serbia":"rs","Seychelles":"sc","Sierra Leone":"sl","Singapore":"sg","Slovakia":"sk",
+  "Slovenia":"si","Solomon Islands":"sb","Somalia":"so","South Africa":"za","South Korea":"kr","South Sudan":"ss",
+  "Spain":"es","Sri Lanka":"lk","Sudan":"sd","Suriname":"sr","Sweden":"se","Switzerland":"ch","Syria":"sy","Taiwan":"tw",
+  "Tajikistan":"tj","Tanzania":"tz","Thailand":"th","Timor-Leste":"tl","Togo":"tg","Tonga":"to","Trinidad and Tobago":"tt",
+  "Tunisia":"tn","Turkey":"tr","Turkmenistan":"tm","Tuvalu":"tv","Uganda":"ug","Ukraine":"ua",
+  "United Arab Emirates":"ae","United Kingdom":"gb","United States":"us","Uruguay":"uy","Uzbekistan":"uz","Vanuatu":"vu",
+  "Vatican City":"va","Venezuela":"ve","Vietnam":"vn","Yemen":"ye","Zambia":"zm","Zimbabwe":"zw"
+};
+
+// ---------- Continents mapping ----------
 const AFRICA = new Set([
   "Algeria","Angola","Benin","Botswana","Burkina Faso","Burundi","Cabo Verde","Cameroon","Central African Republic","Chad",
   "Comoros","Congo (Congo-Brazzaville)","Côte d’Ivoire","Democratic Republic of the Congo","Djibouti","Egypt",
@@ -35,7 +70,6 @@ const AFRICA = new Set([
   "Rwanda","Sao Tome and Principe","Senegal","Seychelles","Sierra Leone","Somalia","South Africa","South Sudan","Sudan",
   "Tanzania","Togo","Tunisia","Uganda","Zambia","Zimbabwe"
 ]);
-
 const EUROPE = new Set([
   "Albania","Andorra","Armenia","Austria","Belarus","Belgium","Bosnia and Herzegovina","Bulgaria","Croatia","Cyprus","Czechia",
   "Denmark","Estonia","Finland","France","Georgia","Germany","Greece","Hungary","Iceland","Ireland","Italy","Latvia",
@@ -43,7 +77,6 @@ const EUROPE = new Set([
   "Poland","Portugal","Romania","Russia","San Marino","Serbia","Slovakia","Slovenia","Spain","Sweden","Switzerland",
   "Ukraine","United Kingdom","Vatican City"
 ]);
-
 const ASIA = new Set([
   "Afghanistan","Azerbaijan","Bahrain","Bangladesh","Bhutan","Brunei","Cambodia","China","India","Indonesia","Iran","Iraq",
   "Israel","Japan","Jordan","Kazakhstan","Kuwait","Kyrgyzstan","Laos","Lebanon","Malaysia","Maldives","Mongolia",
@@ -51,17 +84,14 @@ const ASIA = new Set([
   "Singapore","South Korea","Sri Lanka","Syria","Taiwan","Tajikistan","Thailand","Timor-Leste","Turkey","Turkmenistan",
   "United Arab Emirates","Uzbekistan","Vietnam","Yemen"
 ]);
-
 const NORTH_AMERICA = new Set([
   "Antigua and Barbuda","Bahamas","Barbados","Belize","Canada","Costa Rica","Cuba","Dominica","Dominican Republic",
   "El Salvador","Grenada","Guatemala","Haiti","Honduras","Jamaica","Mexico","Nicaragua","Panama","Saint Kitts and Nevis",
   "Saint Lucia","Saint Vincent and the Grenadines","Trinidad and Tobago","United States"
 ]);
-
 const SOUTH_AMERICA = new Set([
   "Argentina","Bolivia","Brazil","Chile","Colombia","Ecuador","Guyana","Paraguay","Peru","Suriname","Uruguay","Venezuela"
 ]);
-
 const OCEANIA = new Set([
   "Australia","Fiji","Kiribati","Marshall Islands","Micronesia","Nauru","New Zealand","Palau","Papua New Guinea","Samoa",
   "Solomon Islands","Tonga","Tuvalu","Vanuatu"
@@ -76,7 +106,6 @@ function continentOf(country){
   if (OCEANIA.has(country)) return "Oceania";
   return "Other";
 }
-
 const CONTINENTS = ["Africa","Asia","Europe","North America","South America","Oceania","Other"];
 
 // ---------- IndexedDB ----------
@@ -143,19 +172,17 @@ const visitedOnlyEl = document.getElementById("visitedOnly");
 const sortByEl = document.getElementById("sortBy");
 const continentFilterEl = document.getElementById("continentFilter");
 const undoBtn = document.getElementById("undoBtn");
-
 const toggleNotesEl = document.getElementById("toggleNotes");
 const toggleCompactEl = document.getElementById("toggleCompact");
-
 const viewModeEl = document.getElementById("viewMode");
 const mapWrapEl = document.getElementById("mapWrap");
 const mapHostEl = document.getElementById("mapHost");
 
-// ---------- State ----------
-let data = {};          // country -> {count, notes, updatedAt}
+let data = {};
 let query = "";
-let undoStack = [];     // { country, prev, next }
-let collapsed = {};     // continent -> boolean
+let undoStack = [];
+let collapsed = {};
+let mapSvgLoaded = false;
 
 function now(){ return Date.now(); }
 function norm(s){ return (s || "").toLowerCase().replace(/’/g,"'").trim(); }
@@ -163,11 +190,7 @@ function norm(s){ return (s || "").toLowerCase().replace(/’/g,"'").trim(); }
 function getEntry(country){
   const v = data[country];
   if (v && typeof v === "object") {
-    return {
-      count: Number(v.count || 0),
-      notes: String(v.notes || ""),
-      updatedAt: Number(v.updatedAt || 0)
-    };
+    return { count: Number(v.count || 0), notes: String(v.notes || ""), updatedAt: Number(v.updatedAt || 0) };
   }
   return { count: 0, notes: "", updatedAt: 0 };
 }
@@ -176,7 +199,6 @@ async function setEntry(country, nextEntry, pushUndo=true){
   const prev = getEntry(country);
   data[country] = nextEntry;
   await dbSet(country, nextEntry);
-
   if (pushUndo) {
     undoStack.push({ country, prev, next: nextEntry });
     if (undoStack.length > 25) undoStack.shift();
@@ -222,10 +244,7 @@ function buildGroups(){
   });
 
   const groups = {};
-  for (const c of items) {
-    const cont = continentOf(c);
-    (groups[cont] ||= []).push(c);
-  }
+  for (const c of items) (groups[continentOf(c)] ||= []).push(c);
 
   const cmp = compareBy(sortBy);
   for (const cont of Object.keys(groups)) groups[cont].sort(cmp);
@@ -233,78 +252,12 @@ function buildGroups(){
   return groups;
 }
 
-// ---------- MAP SUPPORT (SVG + mapping.csv) ----------
-let nameToIso2 = null;  // normalized name -> iso2
-let iso2ToName = null;  // iso2 -> name
-let mapSvgLoaded = false;
-
-const NAME_ALIASES = {
-  "côte d’ivoire": "cote d'ivoire",
-  "côte d'ivoire": "cote d'ivoire",
-  "czechia": "czech republic",
-  "myanmar (burma)": "myanmar",
-  "congo (congo-brazzaville)": "congo",
-  "democratic republic of the congo": "democratic republic of congo",
-  "eswatini": "swaziland",
-  "north macedonia": "macedonia",
-  "palestine state": "palestine",
-  "russia": "russian federation",
-  "syria": "syrian arab republic",
-  "timor-leste": "east timor"
-};
-
-function normName(s){
-  return norm(String(s || ""));
-}
-
-async function loadMappingCsv() {
-  if (nameToIso2 && iso2ToName) return;
-
-  const res = await fetch("mapping.csv", { cache: "no-store" });
-  if (!res.ok) throw new Error("Could not load mapping.csv (make sure it is in repo root).");
-  const text = await res.text();
-
-  const lines = text.split(/\r?\n/).filter(Boolean);
-  const header = (lines.shift() || "").toLowerCase();
-
-  // Usually "name,code" (with headers). We'll parse safely.
-  const cols = header.split(",").map(s => s.trim());
-  const nameIdx = Math.max(0, cols.indexOf("name"));
-  const codeIdx = cols.indexOf("code") >= 0 ? cols.indexOf("code") : 1;
-
-  nameToIso2 = {};
-  iso2ToName = {};
-
-  for (const line of lines) {
-    const parts = line.split(",");
-    if (parts.length < 2) continue;
-    const name = (parts[nameIdx] || "").trim();
-    const code = (parts[codeIdx] || "").trim();
-    if (!name || !code) continue;
-
-    const key = normName(name);
-    const iso2 = code.toLowerCase();
-    nameToIso2[key] = iso2;
-    iso2ToName[iso2] = name;
-  }
-}
-
-function iso2ForAppCountry(appCountry){
-  if (!nameToIso2) return null;
-  let key = normName(appCountry);
-  if (NAME_ALIASES[key]) key = NAME_ALIASES[key];
-  return nameToIso2[key] || null;
-}
-
-async function ensureMapSvg() {
-  if (mapSvgLoaded) return;
-  if (!mapHostEl) return;
-
+/* ------------------ Map ------------------ */
+async function ensureMapSvg(){
+  if (mapSvgLoaded || !mapHostEl) return;
   const res = await fetch("world-map.min.svg", { cache: "no-store" });
-  if (!res.ok) throw new Error("Could not load world-map.min.svg (make sure it is in repo root).");
-  const svgText = await res.text();
-
-  mapHostEl.innerHTML = svgText;
+  if (!res.ok) throw new Error("Could not load world-map.min.svg (check repo root).");
+  mapHostEl.innerHTML = await res.text();
   mapSvgLoaded = true;
 
   const svg = mapHostEl.querySelector("svg");
@@ -313,26 +266,20 @@ async function ensureMapSvg() {
   svg.addEventListener("click", (e) => {
     const path = e.target.closest("path");
     if (!path) return;
+    const iso = (path.id || "").toLowerCase();
+    if (!iso) return;
 
-    const code = (path.getAttribute("id") || "").toLowerCase();
-    if (!code) return;
-
-    const displayName = (iso2ToName && iso2ToName[code]) ? iso2ToName[code] : code.toUpperCase();
-
-    // Find matching app country to get count
-    let count = 0;
-    for (const c of COUNTRIES) {
-      const iso2 = iso2ForAppCountry(c);
-      if (iso2 === code) {
-        count = getEntry(c).count;
-        break;
-      }
+    // Find matching country name from our mapping
+    let matchName = null;
+    for (const [name, code] of Object.entries(COUNTRY_TO_ISO2)) {
+      if (code === iso) { matchName = name; break; }
     }
-    alert(`${displayName}: ${count}`);
+    const count = matchName ? getEntry(matchName).count : 0;
+    alert(`${matchName || iso.toUpperCase()}: ${count}`);
   });
 }
 
-function updateMapColors() {
+function updateMapColors(){
   if (!mapHostEl) return;
   const svg = mapHostEl.querySelector("svg");
   if (!svg) return;
@@ -340,37 +287,30 @@ function updateMapColors() {
   svg.querySelectorAll("path.visited").forEach(p => p.classList.remove("visited"));
 
   for (const c of COUNTRIES) {
-    const iso2 = iso2ForAppCountry(c);
+    const iso2 = COUNTRY_TO_ISO2[c];
     if (!iso2) continue;
     const e = getEntry(c);
     if (e.count <= 0) continue;
 
-    const el = svg.querySelector(`#${CSS.escape(iso2)}`);
+    const el = svg.querySelector(`#${CSS.escape(iso2)}`) || svg.querySelector(`#${CSS.escape(iso2.toUpperCase())}`);
     if (el) el.classList.add("visited");
   }
 }
 
-function applyViewMode(mode) {
+function applyViewMode(mode){
   const isMap = mode === "map";
-
   if (mapWrapEl) mapWrapEl.style.display = isMap ? "" : "none";
   if (listEl) listEl.style.display = isMap ? "none" : "";
-
   localStorage.setItem("viewMode", mode);
 
   if (isMap) {
-    (async () => {
-      await loadMappingCsv();
-      await ensureMapSvg();
-      updateMapColors();
-    })().catch(err => {
-      console.error(err);
-      alert("Map failed to load. Confirm mapping.csv and world-map.min.svg are in your repo root.");
-    });
+    ensureMapSvg()
+      .then(() => updateMapColors())
+      .catch(err => { console.error(err); alert("Map failed to load. Ensure world-map.min.svg is in repo root."); });
   }
 }
 
-// ---------- Render ----------
+/* ------------------ Render ------------------ */
 function render(){
   if (statsEl) {
     const { countriesVisited, totalTrips } = computeStats();
@@ -453,8 +393,7 @@ function render(){
       minus.textContent = "−";
       minus.addEventListener("click", async () => {
         const cur = getEntry(c).count;
-        const next = Math.max(0, cur - 1);
-        await setEntry(c, { ...getEntry(c), count: next, updatedAt: now() }, true);
+        await setEntry(c, { ...getEntry(c), count: Math.max(0, cur - 1), updatedAt: now() }, true);
         render();
       });
 
@@ -463,8 +402,7 @@ function render(){
       plus.textContent = "+";
       plus.addEventListener("click", async () => {
         const cur = getEntry(c).count;
-        const next = cur + 1;
-        await setEntry(c, { ...getEntry(c), count: next, updatedAt: now() }, true);
+        await setEntry(c, { ...getEntry(c), count: cur + 1, updatedAt: now() }, true);
         render();
       });
 
@@ -507,16 +445,14 @@ function render(){
     listEl.appendChild(group);
   }
 
-  // Keep map fills in sync (if map view)
   const mode = localStorage.getItem("viewMode") || "list";
   if (mode === "map") updateMapColors();
 }
 
-// ---------- Preferences ----------
+/* ------------------ Preferences & Events ------------------ */
 function loadPrefs(){
-  try {
-    collapsed = JSON.parse(localStorage.getItem("collapsedContinents") || "{}") || {};
-  } catch { collapsed = {}; }
+  try { collapsed = JSON.parse(localStorage.getItem("collapsedContinents") || "{}") || {}; }
+  catch { collapsed = {}; }
 
   const compact = localStorage.getItem("compactMode") === "1";
   document.body.classList.toggle("compact", compact);
@@ -531,7 +467,6 @@ function loadPrefs(){
   applyViewMode(view);
 }
 
-// ---------- Events ----------
 if (searchEl) searchEl.addEventListener("input", (e) => { query = e.target.value; render(); });
 if (visitedOnlyEl) visitedOnlyEl.addEventListener("change", render);
 if (sortByEl) sortByEl.addEventListener("change", render);
@@ -565,24 +500,17 @@ if (toggleNotesEl) {
 }
 
 if (viewModeEl) {
-  viewModeEl.addEventListener("change", () => {
-    applyViewMode(viewModeEl.value);
-  });
+  viewModeEl.addEventListener("change", () => applyViewMode(viewModeEl.value));
 }
 
 if (exportBtn) {
   exportBtn.addEventListener("click", async () => {
-    const payload = {
-      app: "CountriesVisited",
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      data: {}
-    };
+    const payload = { app:"CountriesVisited", version:2, exportedAt:new Date().toISOString(), data:{} };
     for (const c of COUNTRIES) {
       const e = getEntry(c);
       if (e.count > 0 || (e.notes && e.notes.trim())) payload.data[c] = e;
     }
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -596,29 +524,26 @@ if (importFile) {
   importFile.addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
+      const payload = JSON.parse(await file.text());
 
-      // Import v1 (counts) or v2 (data)
       if (payload?.version === 1 && payload?.counts) {
         for (const [country, count] of Object.entries(payload.counts)) {
           const n = Math.max(0, Math.floor(Number(count || 0)));
-          data[country] = { count: n, notes: "", updatedAt: now() };
+          data[country] = { count:n, notes:"", updatedAt: now() };
           await dbSet(country, data[country]);
         }
       } else {
         const incoming = payload?.data || payload?.counts || {};
         for (const [country, raw] of Object.entries(incoming)) {
           if (typeof raw === "number") {
-            const n = Math.max(0, Math.floor(Number(raw || 0)));
-            data[country] = { count: n, notes: "", updatedAt: now() };
+            data[country] = { count: Math.max(0, Math.floor(Number(raw||0))), notes:"", updatedAt: now() };
           } else {
-            const n = Math.max(0, Math.floor(Number(raw?.count || 0)));
-            const notes = String(raw?.notes || "");
-            const updatedAt = Number(raw?.updatedAt || now());
-            data[country] = { count: n, notes, updatedAt };
+            data[country] = {
+              count: Math.max(0, Math.floor(Number(raw?.count||0))),
+              notes: String(raw?.notes||""),
+              updatedAt: Number(raw?.updatedAt||now())
+            };
           }
           await dbSet(country, data[country]);
         }
@@ -627,7 +552,6 @@ if (importFile) {
       undoStack = [];
       updateUndoBtn();
       render();
-
       e.target.value = "";
       alert("Import complete.");
     } catch (err) {
@@ -647,7 +571,7 @@ if (resetBtn) {
   });
 }
 
-// ---- init ----
+// init continent dropdown
 (function initContinentsDropdown(){
   if (!continentFilterEl) return;
   const existing = new Set([...continentFilterEl.options].map(o => o.value));
