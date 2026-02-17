@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Countries Visited</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#111827" />
+</head>
+<body>
+  <header class="header">
+    <h1>Countries Visited</h1>
+    <div class="actions">
+      <button id="exportBtn" class="btn">Export</button>
+      <label class="btn fileLabel">
+        Import
+        <input id="importFile" type="file" accept="application/json" />
+      </label>
+      <button id="resetBtn" class="btn danger">Reset</button>
+    </div>
+    <input id="search" class="search" placeholder="Search countries…" />
+  </header>
+
+  <main>
+    <div class="hint">
+      Tap to add a visit. Use − to subtract. Offline by default.
+    </div>
+    <ul id="list" class="list"></ul>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
