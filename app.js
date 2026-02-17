@@ -275,17 +275,25 @@ async function ensureMapSvg(){
   if (!svg) return;
 
   svg.addEventListener("click", (e) => {
-    const path = e.target.closest("path");
-    if (!path) return;
-    const iso = (path.id || "").toLowerCase();
-    if (!iso) return;
+  // First try: clicked path
+  let el = e.target.closest("path");
 
-    // Find matching country name from our mapping
-    const counts = iso2CountMap();
-    const count = counts[iso] || 0;
-    alert(`${iso.toUpperCase()}: ${count}`);
+  // If that path has no ID, try the nearest ancestor that has an ID (often a <g>)
+  if (!el || !el.id) {
+    el = e.target.closest("[id]");
+  }
 
-  });
+  if (!el) return;
+
+  const iso = (el.getAttribute("id") || "").toLowerCase();
+  if (!iso) return;
+
+  const counts = iso2CountMap();
+  const count = counts[iso] || 0;
+
+  alert(`${iso.toUpperCase()}: ${count}`);
+});
+
 }
 
 function updateMapColors(){
@@ -293,14 +301,11 @@ function updateMapColors(){
   const svg = mapHostEl.querySelector("svg");
   if (!svg) return;
 
-  // Remove previous visited fills
-  svg.querySelectorAll("path.visited")
-     .forEach(p => p.classList.remove("visited"));
+  // Clear previous fills
+  svg.querySelectorAll("path.visited").forEach(p => p.classList.remove("visited"));
 
-  // Build ISO2 → count map
   const counts = iso2CountMap();
 
-  // Color visited countries
   for (const [iso2, count] of Object.entries(counts)) {
     if (count <= 0) continue;
 
@@ -308,9 +313,18 @@ function updateMapColors(){
       svg.querySelector(`#${CSS.escape(iso2)}`) ||
       svg.querySelector(`#${CSS.escape(iso2.toUpperCase())}`);
 
-    if (el) el.classList.add("visited");
+    if (!el) continue;
+
+    // If the element itself is a path, mark it.
+    if (el.tagName.toLowerCase() === "path") {
+      el.classList.add("visited");
+    } else {
+      // If it's a group (g) or something else, mark all paths inside it.
+      el.querySelectorAll("path").forEach(p => p.classList.add("visited"));
+    }
   }
 }
+
 
 function applyViewMode(mode){
   const isMap = mode === "map";
