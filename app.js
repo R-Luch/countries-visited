@@ -291,6 +291,10 @@ function render(){
     header.appendChild(h2);
     header.appendChild(meta);
 
+    const chev = document.createElement("span");
+    chev.className = "chev";
+    chev.textContent = collapsed[cont] ? "▸" : "▾";
+
     const ul = document.createElement("ul");
     ul.className = "list";
 
