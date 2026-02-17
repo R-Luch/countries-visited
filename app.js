@@ -268,6 +268,8 @@ function render(){
     const group = document.createElement("section");
     group.className = "group";
 
+    if (collapsed[cont]) group.classList.add("collapsed");
+
     const header = document.createElement("div");
     header.className = "groupHeader";
 
