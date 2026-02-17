@@ -290,17 +290,14 @@ async function ensureMapSvg(){
   if (!svg) return;
 
   svg.addEventListener("click", async (e) => {
-    // Try: clicked path
     let el = e.target.closest("path");
-
-    // Fallback: nearest ancestor with an id (often a <g id="ca">)
     if (!el || !el.id) el = e.target.closest("[id]");
     if (!el) return;
 
     const iso = (el.getAttribute("id") || "").toLowerCase();
     if (!iso) return;
 
-    // Find the app country name for this ISO2 code
+    // iso2 -> country name
     let country = null;
     for (const [name, code] of Object.entries(COUNTRY_TO_ISO2)) {
       if (code === iso) { country = name; break; }
@@ -313,10 +310,12 @@ async function ensureMapSvg(){
 
     await setEntry(country, { ...getEntry(country), count: next, updatedAt: now() }, true);
 
-    // Refresh list + map
+    // Show toast and refresh UI
+    showToast(`${country}: ${next}`);
     render();
   });
 }
+
 
 
 function updateMapColors(){
