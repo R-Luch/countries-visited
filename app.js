@@ -293,15 +293,21 @@ function updateMapColors(){
   const svg = mapHostEl.querySelector("svg");
   if (!svg) return;
 
-  svg.querySelectorAll("path.visited").forEach(p => p.classList.remove("visited"));
+  // Remove previous visited fills
+  svg.querySelectorAll("path.visited")
+     .forEach(p => p.classList.remove("visited"));
 
-  for (const c of COUNTRIES) {
-    const iso2 = COUNTRY_TO_ISO2[c];
-    if (!iso2) continue;
-    const e = getEntry(c);
-    if (e.count <= 0) continue;
+  // Build ISO2 → count map
+  const counts = iso2CountMap();
 
-    const el = svg.querySelector(`#${CSS.escape(iso2)}`) || svg.querySelector(`#${CSS.escape(iso2.toUpperCase())}`);
+  // Color visited countries
+  for (const [iso2, count] of Object.entries(counts)) {
+    if (count <= 0) continue;
+
+    const el =
+      svg.querySelector(`#${CSS.escape(iso2)}`) ||
+      svg.querySelector(`#${CSS.escape(iso2.toUpperCase())}`);
+
     if (el) el.classList.add("visited");
   }
 }
