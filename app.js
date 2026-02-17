@@ -1,6 +1,7 @@
-// Countries Visited v2.2 (offline, IndexedDB)
-// Features: continents, filters, sorting, stats, undo, manual edit, notes (toggle),
-// compact mode (toggle), collapsible continents, export/import, crash-proof toggles.
+// Countries Visited v3 (offline, IndexedDB)
+// Includes: continents, filters, sorting, stats, undo, manual edit, notes toggle,
+// compact toggle, collapsible continents, export/import (v1+v2), and SVG map view
+// using mapping.csv + world-map.min.svg (simple-world-map).
 
 const COUNTRIES = [
   "Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria",
@@ -100,12 +101,12 @@ async function dbGetAll() {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, "readonly");
     const store = tx.objectStore(STORE);
-    const data = {};
+    const out = {};
     const req = store.openCursor();
     req.onsuccess = () => {
       const cur = req.result;
-      if (cur) { data[cur.key] = cur.value; cur.continue(); }
-      else resolve(data);
+      if (cur) { out[cur.key] = cur.value; cur.continue(); }
+      else resolve(out);
     };
     req.onerror = () => reject(req.error);
   });
@@ -131,7 +132,7 @@ async function dbClear() {
   });
 }
 
-// ---------- UI elements (crash-proof) ----------
+// ---------- UI ----------
 const listEl = document.getElementById("list");
 const searchEl = document.getElementById("search");
 const exportBtn = document.getElementById("exportBtn");
@@ -143,17 +144,21 @@ const sortByEl = document.getElementById("sortBy");
 const continentFilterEl = document.getElementById("continentFilter");
 const undoBtn = document.getElementById("undoBtn");
 
-const toggleNotesEl = document.getElementById("toggleNotes");       // may not exist
-const toggleCompactEl = document.getElementById("toggleCompact");   // may not exist
+const toggleNotesEl = document.getElementById("toggleNotes");
+const toggleCompactEl = document.getElementById("toggleCompact");
+
+const viewModeEl = document.getElementById("viewMode");
+const mapWrapEl = document.getElementById("mapWrap");
+const mapHostEl = document.getElementById("mapHost");
 
 // ---------- State ----------
-let data = {}; // country -> {count, notes, updatedAt}
+let data = {};          // country -> {count, notes, updatedAt}
 let query = "";
-let undoStack = []; // { country, prev, next }
-let collapsed = {}; // continent -> boolean
+let undoStack = [];     // { country, prev, next }
+let collapsed = {};     // continent -> boolean
 
 function now(){ return Date.now(); }
-function norm(s){ return s.toLowerCase().replace(/’/g,"'"); }
+function norm(s){ return (s || "").toLowerCase().replace(/’/g,"'").trim(); }
 
 function getEntry(country){
   const v = data[country];
@@ -196,17 +201,13 @@ function computeStats(){
 }
 
 function compareBy(sortBy){
-  if (sortBy === "most") {
-    return (a,b) => getEntry(b).count - getEntry(a).count || a.localeCompare(b);
-  }
-  if (sortBy === "recent") {
-    return (a,b) => getEntry(b).updatedAt - getEntry(a).updatedAt || a.localeCompare(b);
-  }
+  if (sortBy === "most") return (a,b) => getEntry(b).count - getEntry(a).count || a.localeCompare(b);
+  if (sortBy === "recent") return (a,b) => getEntry(b).updatedAt - getEntry(a).updatedAt || a.localeCompare(b);
   return (a,b) => a.localeCompare(b);
 }
 
-function buildFilteredGroups(){
-  const q = norm(query.trim());
+function buildGroups(){
+  const q = norm(query);
   const visitedOnly = !!visitedOnlyEl?.checked;
   const continentFilter = continentFilterEl?.value || "All";
   const sortBy = sortByEl?.value || "alpha";
@@ -232,16 +233,152 @@ function buildFilteredGroups(){
   return groups;
 }
 
+// ---------- MAP SUPPORT (SVG + mapping.csv) ----------
+let nameToIso2 = null;  // normalized name -> iso2
+let iso2ToName = null;  // iso2 -> name
+let mapSvgLoaded = false;
+
+const NAME_ALIASES = {
+  "côte d’ivoire": "cote d'ivoire",
+  "côte d'ivoire": "cote d'ivoire",
+  "czechia": "czech republic",
+  "myanmar (burma)": "myanmar",
+  "congo (congo-brazzaville)": "congo",
+  "democratic republic of the congo": "democratic republic of congo",
+  "eswatini": "swaziland",
+  "north macedonia": "macedonia",
+  "palestine state": "palestine",
+  "russia": "russian federation",
+  "syria": "syrian arab republic",
+  "timor-leste": "east timor"
+};
+
+function normName(s){
+  return norm(String(s || ""));
+}
+
+async function loadMappingCsv() {
+  if (nameToIso2 && iso2ToName) return;
+
+  const res = await fetch("mapping.csv", { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load mapping.csv (make sure it is in repo root).");
+  const text = await res.text();
+
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  const header = (lines.shift() || "").toLowerCase();
+
+  // Usually "name,code" (with headers). We'll parse safely.
+  const cols = header.split(",").map(s => s.trim());
+  const nameIdx = Math.max(0, cols.indexOf("name"));
+  const codeIdx = cols.indexOf("code") >= 0 ? cols.indexOf("code") : 1;
+
+  nameToIso2 = {};
+  iso2ToName = {};
+
+  for (const line of lines) {
+    const parts = line.split(",");
+    if (parts.length < 2) continue;
+    const name = (parts[nameIdx] || "").trim();
+    const code = (parts[codeIdx] || "").trim();
+    if (!name || !code) continue;
+
+    const key = normName(name);
+    const iso2 = code.toLowerCase();
+    nameToIso2[key] = iso2;
+    iso2ToName[iso2] = name;
+  }
+}
+
+function iso2ForAppCountry(appCountry){
+  if (!nameToIso2) return null;
+  let key = normName(appCountry);
+  if (NAME_ALIASES[key]) key = NAME_ALIASES[key];
+  return nameToIso2[key] || null;
+}
+
+async function ensureMapSvg() {
+  if (mapSvgLoaded) return;
+  if (!mapHostEl) return;
+
+  const res = await fetch("world-map.min.svg", { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load world-map.min.svg (make sure it is in repo root).");
+  const svgText = await res.text();
+
+  mapHostEl.innerHTML = svgText;
+  mapSvgLoaded = true;
+
+  const svg = mapHostEl.querySelector("svg");
+  if (!svg) return;
+
+  svg.addEventListener("click", (e) => {
+    const path = e.target.closest("path");
+    if (!path) return;
+
+    const code = (path.getAttribute("id") || "").toLowerCase();
+    if (!code) return;
+
+    const displayName = (iso2ToName && iso2ToName[code]) ? iso2ToName[code] : code.toUpperCase();
+
+    // Find matching app country to get count
+    let count = 0;
+    for (const c of COUNTRIES) {
+      const iso2 = iso2ForAppCountry(c);
+      if (iso2 === code) {
+        count = getEntry(c).count;
+        break;
+      }
+    }
+    alert(`${displayName}: ${count}`);
+  });
+}
+
+function updateMapColors() {
+  if (!mapHostEl) return;
+  const svg = mapHostEl.querySelector("svg");
+  if (!svg) return;
+
+  svg.querySelectorAll("path.visited").forEach(p => p.classList.remove("visited"));
+
+  for (const c of COUNTRIES) {
+    const iso2 = iso2ForAppCountry(c);
+    if (!iso2) continue;
+    const e = getEntry(c);
+    if (e.count <= 0) continue;
+
+    const el = svg.querySelector(`#${CSS.escape(iso2)}`);
+    if (el) el.classList.add("visited");
+  }
+}
+
+function applyViewMode(mode) {
+  const isMap = mode === "map";
+
+  if (mapWrapEl) mapWrapEl.style.display = isMap ? "" : "none";
+  if (listEl) listEl.style.display = isMap ? "none" : "";
+
+  localStorage.setItem("viewMode", mode);
+
+  if (isMap) {
+    (async () => {
+      await loadMappingCsv();
+      await ensureMapSvg();
+      updateMapColors();
+    })().catch(err => {
+      console.error(err);
+      alert("Map failed to load. Confirm mapping.csv and world-map.min.svg are in your repo root.");
+    });
+  }
+}
+
+// ---------- Render ----------
 function render(){
-  // Stats
   if (statsEl) {
     const { countriesVisited, totalTrips } = computeStats();
     statsEl.textContent = `Countries visited: ${countriesVisited} • Total trips: ${totalTrips}`;
   }
-
   if (!listEl) return;
 
-  const groups = buildFilteredGroups();
+  const groups = buildGroups();
   listEl.innerHTML = "";
 
   for (const cont of CONTINENTS) {
@@ -258,7 +395,6 @@ function render(){
     const h2 = document.createElement("h2");
     h2.textContent = cont;
 
-    // meta: visited count / total in this group
     let visitedInGroup = 0;
     let tripsInGroup = 0;
     for (const c of arr) {
@@ -266,6 +402,7 @@ function render(){
       if (e.count > 0) visitedInGroup++;
       tripsInGroup += e.count;
     }
+
     const meta = document.createElement("div");
     meta.className = "meta";
     meta.textContent = `${visitedInGroup}/${arr.length} visited • ${tripsInGroup} trips`;
@@ -300,7 +437,7 @@ function render(){
       const countBtn = document.createElement("button");
       countBtn.className = "countBtn";
       countBtn.textContent = String(e.count);
-      countBtn.title = "Tap to edit number";
+      countBtn.title = "Tap to set exact value";
       countBtn.addEventListener("click", async () => {
         const current = getEntry(c).count;
         const input = prompt(`Set visit count for ${c}:`, String(current));
@@ -336,13 +473,12 @@ function render(){
       li.appendChild(minus);
       li.appendChild(plus);
 
-      // Notes row (hidden unless Show Notes enabled via CSS class)
       const notesRow = document.createElement("div");
       notesRow.className = "notesRow";
 
       const notes = document.createElement("textarea");
       notes.className = "notes";
-      notes.placeholder = "Notes (cities, dates, memories)…";
+      notes.placeholder = "Notes (optional)…";
       notes.value = e.notes || "";
 
       const updated = document.createElement("div");
@@ -370,24 +506,29 @@ function render(){
     group.appendChild(ul);
     listEl.appendChild(group);
   }
+
+  // Keep map fills in sync (if map view)
+  const mode = localStorage.getItem("viewMode") || "list";
+  if (mode === "map") updateMapColors();
 }
 
 // ---------- Preferences ----------
 function loadPrefs(){
-  // collapsed continents
   try {
     collapsed = JSON.parse(localStorage.getItem("collapsedContinents") || "{}") || {};
   } catch { collapsed = {}; }
 
-  // compact mode
   const compact = localStorage.getItem("compactMode") === "1";
   document.body.classList.toggle("compact", compact);
   if (toggleCompactEl) toggleCompactEl.checked = compact;
 
-  // notes
   const showNotes = localStorage.getItem("showNotes") === "1";
   document.body.classList.toggle("notesHidden", !showNotes);
   if (toggleNotesEl) toggleNotesEl.checked = showNotes;
+
+  const view = localStorage.getItem("viewMode") || "list";
+  if (viewModeEl) viewModeEl.value = view;
+  applyViewMode(view);
 }
 
 // ---------- Events ----------
@@ -423,6 +564,12 @@ if (toggleNotesEl) {
   });
 }
 
+if (viewModeEl) {
+  viewModeEl.addEventListener("change", () => {
+    applyViewMode(viewModeEl.value);
+  });
+}
+
 if (exportBtn) {
   exportBtn.addEventListener("click", async () => {
     const payload = {
@@ -454,7 +601,7 @@ if (importFile) {
       const text = await file.text();
       const payload = JSON.parse(text);
 
-      // Import v1 format (counts) or v2 format (data)
+      // Import v1 (counts) or v2 (data)
       if (payload?.version === 1 && payload?.counts) {
         for (const [country, count] of Object.entries(payload.counts)) {
           const n = Math.max(0, Math.floor(Number(count || 0)));
@@ -502,7 +649,6 @@ if (resetBtn) {
 
 // ---- init ----
 (function initContinentsDropdown(){
-  // Fill continent filter options if they exist and only has "All"
   if (!continentFilterEl) return;
   const existing = new Set([...continentFilterEl.options].map(o => o.value));
   for (const cont of CONTINENTS) {
