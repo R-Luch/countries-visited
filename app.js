@@ -187,6 +187,19 @@ let mapSvgLoaded = false;
 function now(){ return Date.now(); }
 function norm(s){ return (s || "").toLowerCase().replace(/’/g,"'").trim(); }
 
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => {
+    toast.classList.remove("show");
+  }, 1200);
+}
+
 function getEntry(country){
   const v = data[country];
   if (v && typeof v === "object") {
