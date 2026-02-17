@@ -266,35 +266,45 @@ function iso2CountMap() {
 
 async function ensureMapSvg(){
   if (mapSvgLoaded || !mapHostEl) return;
+
   const res = await fetch("world-map.min.svg", { cache: "no-store" });
   if (!res.ok) throw new Error("Could not load world-map.min.svg (check repo root).");
+
   mapHostEl.innerHTML = await res.text();
   mapSvgLoaded = true;
 
   const svg = mapHostEl.querySelector("svg");
   if (!svg) return;
 
-  svg.addEventListener("click", (e) => {
-  // First try: clicked path
-  let el = e.target.closest("path");
+  svg.addEventListener("click", async (e) => {
+    // Try: clicked path
+    let el = e.target.closest("path");
 
-  // If that path has no ID, try the nearest ancestor that has an ID (often a <g>)
-  if (!el || !el.id) {
-    el = e.target.closest("[id]");
-  }
+    // Fallback: nearest ancestor with an id (often a <g id="ca">)
+    if (!el || !el.id) el = e.target.closest("[id]");
+    if (!el) return;
 
-  if (!el) return;
+    const iso = (el.getAttribute("id") || "").toLowerCase();
+    if (!iso) return;
 
-  const iso = (el.getAttribute("id") || "").toLowerCase();
-  if (!iso) return;
+    // Find the app country name for this ISO2 code
+    let country = null;
+    for (const [name, code] of Object.entries(COUNTRY_TO_ISO2)) {
+      if (code === iso) { country = name; break; }
+    }
+    if (!country) return;
 
-  const counts = iso2CountMap();
-  const count = counts[iso] || 0;
+    // Click = +1, Shift+Click = -1
+    const current = getEntry(country).count;
+    const next = e.shiftKey ? Math.max(0, current - 1) : (current + 1);
 
-  alert(`${iso.toUpperCase()}: ${count}`);
-});
+    await setEntry(country, { ...getEntry(country), count: next, updatedAt: now() }, true);
 
+    // Refresh list + map
+    render();
+  });
 }
+
 
 function updateMapColors(){
   if (!mapHostEl) return;
