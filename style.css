@@ -201,3 +201,6 @@ main { padding: 10px 12px 40px; max-width: 980px; margin: 0 auto; }
   color: var(--muted);
   font-size: 12px;
 }
+.notesHidden .notesRow {
+  display: none;
+}
