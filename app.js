@@ -360,6 +360,13 @@ searchEl.addEventListener("input", (e) => { query = e.target.value; render(); })
 visitedOnlyEl.addEventListener("change", render);
 sortByEl.addEventListener("change", render);
 continentFilterEl.addEventListener("change", render);
+toggleNotesEl.addEventListener("change", () => {
+  if (toggleNotesEl.checked) {
+    document.body.classList.remove("notesHidden");
+  } else {
+    document.body.classList.add("notesHidden");
+  }
+});
 
 undoBtn.addEventListener("click", async () => {
   const last = undoStack.pop();
