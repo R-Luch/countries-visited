@@ -41,14 +41,24 @@
             <option value="All">All</option>
           </select>
         </label>
-				<label class="chip">
-				  <input id="toggleNotes" type="checkbox" />
-				  <span>Show Notes</span>
-				</label>  
-		  <label class="chip">
-			  <input id="toggleCompact" type="checkbox" />
-			  <span>Compact</span>
-			</label>
+
+        <label class="chip">
+          <span>View</span>
+          <select id="viewMode">
+            <option value="list">List</option>
+            <option value="map">Map</option>
+          </select>
+        </label>
+
+        <label class="chip">
+          <input id="toggleNotes" type="checkbox" />
+          <span>Show Notes</span>
+        </label>
+
+        <label class="chip">
+          <input id="toggleCompact" type="checkbox" />
+          <span>Compact</span>
+        </label>
       </div>
 
       <div class="actions">
@@ -64,8 +74,22 @@
 
   <main>
     <div class="hint">
-      Tap <b>+</b> / <b>−</b> to change counts. Tap the number to type a value. Notes are optional.
+      Tap <b>+</b> / <b>−</b> to change counts. Tap the number to type a value.
+      Click a continent header to collapse/expand.
     </div>
+
+    <!-- Map View -->
+    <div id="mapWrap" class="mapWrap" style="display:none;">
+      <div class="mapHint">
+        Visited countries are filled. Tap a country for its count.
+      </div>
+      <div id="mapHost" class="mapHost"></div>
+      <div class="mapLegend">
+        <span class="dot"></span> visited
+      </div>
+    </div>
+
+    <!-- List View -->
     <div id="list" class="groupList"></div>
   </main>
 
